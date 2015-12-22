@@ -20,10 +20,10 @@ Sequence::Sequence(QString qfilename, QString res_file)
     width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
     rate = capture.get(CV_CAP_PROP_FPS);
 
-    N = N * 0.05;
     cache_count = N;
     if(N * height * width * 3 / (1024*1024) > IMAGE_CHCHE)
         cache_count = IMAGE_CHCHE*1024*1024 / (height * width * 3);
+    cache_start = 0;
 
     image_cache = std::vector<cv::Mat>(cache_count);
 
@@ -82,6 +82,7 @@ Sequence::Sequence(QString qfilename, QString res_file)
         camera = QRectF(width/2 - length/5, height/2 - length/5, length*2/5, length*2/5);
     }
 
+    FaceID = 0;
 }
 
 Sequence::~Sequence()
@@ -95,10 +96,13 @@ QImage Sequence::get_frame(int i)
 
     for(int k = 0; k < res[i].size(); k++)
     {
-        rectangle(image, res[i][k].rect, CV_RGB(255,0,0), 2);
+        if(k == FaceID)
+            rectangle(image, res[i][k].rect, CV_RGB(255,0,0), 2);
+        else
+            rectangle(image, res[i][k].rect, CV_RGB(0,0,255), 2);
         for(int j = 0; j < ALI_POINTS_NUM; j++)
         {
-            circle(image, res[i][k].alignments[j], 0, CV_RGB(0,255,0), 2);
+            circle(image, res[i][k].alignments[j], 1, CV_RGB(0,255,0), 2);
         }
     }
 
@@ -171,6 +175,11 @@ qreal Sequence::get_frame_rate()
      path = _path;
  }
 
+ void Sequence::set_FaceID(int _FaceID)
+ {
+     FaceID = _FaceID;
+ }
+
 QImage Sequence::mat2Qimg(cv::Mat a)
 {
     QImage qimg;
@@ -199,20 +208,40 @@ QImage Sequence::mat2Qimg(cv::Mat a)
 
 cv::Mat Sequence::get_frame_raw(int i)
 {
-    cv::Mat image;
 
-    if(i < cache_count)
-        return image_cache[i];
+    if(i >= cache_start && i < cache_start + cache_count && i < N)
+        return image_cache[i - cache_start];
 
-
+    cache_start = i;
     capture.set(CV_CAP_PROP_POS_FRAMES, i);
-    capture.read(image);
-    return image;
+    for(int i = 0; i < cache_count; i++)
+    {
+        capture >> image_cache[i];
+        if( cache_start + i >= N)
+            break;
+    }
+    return image_cache[i - cache_start];;
 }
 
-void Sequence::labeling(int FaceID, int PointID, QPointF loc)
+void Sequence::labelingone(int FaceID, int PointID, QPointF loc)
 {
     res[n][FaceID].alignments[PointID] = Point(int(loc.x()), int(loc.y()));
+    update();
+}
+
+void Sequence::labelingall(int FaceID, QPointF loc)
+{
+    float delta_x, delta_y;
+    delta_x = loc.x() - (res[n][FaceID].rect.x + res[n][FaceID].rect.width);
+    delta_y = loc.y() - (res[n][FaceID].rect.y + res[n][FaceID].rect.height);
+
+    res[n][FaceID].rect.x += delta_x;
+    res[n][FaceID].rect.y += delta_y;
+    for(int i = 0; i < ALI_POINTS_NUM; i++)
+    {
+        res[n][FaceID].alignments[i].x += delta_x;
+        res[n][FaceID].alignments[i].y += delta_y;
+    }
     update();
 }
 
@@ -229,9 +258,15 @@ void Sequence::add_face()
     face.rect.y = height*2/5;
     face.rect.width = min(height, width) / 5;
     face.rect.height = face.rect.width;
+
+    face.alignments = get_meanpose(face.rect);
+
+    res[n].push_back(face);
+
 }
 
-void Sequence::delete_face(int FaceID)
+void Sequence::delete_face()
 {
-    res[n].erase(res[n].beign() + FaceID, res[n].beign() + FaceID + 1);
+    if(FaceID >= 0 && FaceID < res[n].size())
+        res[n].erase(res[n].begin() + FaceID, res[n].begin() + FaceID + 1);
 }

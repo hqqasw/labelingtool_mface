@@ -11,6 +11,7 @@ FaceScreen::FaceScreen(Sequence *seq, QWidget *parent):
 
     FaceID = 0;
     PointID = -1;
+    seq->set_FaceID(FaceID);
 }
 
 FaceScreen::~FaceScreen()
@@ -74,6 +75,7 @@ void FaceScreen::mousePressEvent(QMouseEvent *e)
     const QRectF &c = s->get_camera();
     qreal scale = qScale(size(), c.size());
     FaceID = targetF(s->res[s->get_n()], gp);
+    s->set_FaceID(FaceID);
     if(FaceID == -1)
     {
         PointID = -1;
@@ -99,7 +101,7 @@ void FaceScreen::mousePressEvent(QMouseEvent *e)
                 bestD = D;
             }
         }
-        s->labeling(FaceID, besti, gp);
+        s->labelingone(FaceID, besti, gp);
         //hints = names[besti] + " : " + toString(gp);
     }
     emit changed();
@@ -116,7 +118,11 @@ void FaceScreen::mouseMoveEvent(QMouseEvent *e)
 
     if (PointID == -1 || !QRectF(QPointF(), size()).contains(p))
         return;
-    s->labeling(FaceID, PointID, gp);
+
+    if(PointID == -2)
+        s->labelingall(FaceID, gp);
+    else
+        s->labelingone(FaceID, PointID, gp);
     start_pos = gp;
     emit changed();
     return;
@@ -156,6 +162,10 @@ int FaceScreen::targetF(const std::vector<Face> faces, QPointF gp)
 
 int FaceScreen::targetP(const Face face, QPointF gp, qreal limit)
 {
+    QPointF corner_rb(face.rect.x + face.rect.width, face.rect.y + face.rect.height);
+    if((cal_L2(corner_rb - gp)) <= limit)
+        return -2;
+
     for (int i = 0; i < ALI_POINTS_NUM; i++)
     {
         QPointF p(face.alignments[i].x, face.alignments[i].y);

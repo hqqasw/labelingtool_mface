@@ -14,6 +14,10 @@ FaceTools::FaceTools()
        qDebug("Fail to init detect handle!");
         return;
     }
+}
+
+FaceTools::~FaceTools()
+{
 
 }
 
@@ -84,7 +88,7 @@ int FaceTools::align(Mat image, std::vector<Face> &faces)
             return 0;
         }
 
-        std::vector<Point> alignments(ALI_POINTS_NUM);
+        std::vector<Point2f> alignments(ALI_POINTS_NUM);
         for(int j = 0; j < ALI_POINTS_NUM; j++)
         {
             alignments[j].x = p_face_points[j].x;
@@ -133,7 +137,7 @@ int FaceTools::detectAndalign(Mat image, std::vector<Face> &faces)
         face_tmp.rect.height = p_face[i].rect.bottom - p_face[i].rect.top;
         faces.push_back(face_tmp);
 
-        std::vector<Point> alignments(ALI_POINTS_NUM);
+        std::vector<Point2f> alignments(ALI_POINTS_NUM);
         for(int j = 0; j < ALI_POINTS_NUM; j++)
         {
             alignments[j].x = p_face_points[j].x;

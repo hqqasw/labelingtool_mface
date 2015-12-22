@@ -17,7 +17,7 @@ using namespace cv;
 //for Annotation
 const int ALI_POINTS_NUM = 21;
 const QString Author = "HQQ", Title = "Labeling_mface";
-const std::vector<Point2f> MEAN_POSE(ALI_POINTS_NUM);
+std::vector<cv::Point2f> get_meanpose(cv::Rect_<float> rect);
 
 //for GUI
 const qreal ScaleFactor = 1.1;
@@ -34,7 +34,7 @@ QString toString(QRectF r);
 
 std::string Qstr2stdstr(QString);
 
-QRectF toQrect(cv::Rect rect);
+QRectF toQrect(cv::Rect_<float> rect);
 
 #endif // COMMON
 

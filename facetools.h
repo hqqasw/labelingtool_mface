@@ -9,7 +9,7 @@
 #include "common.h"
 
 struct Face{
-    cv::Rect2f rect;
+    cv::Rect_<float> rect;
     std::vector<cv::Point2f> alignments;
     int ID;
 
@@ -24,6 +24,7 @@ class FaceTools
 {
 public:
     FaceTools();
+    ~FaceTools();
 
     int detect(cv::Mat image, std::vector<Face> &faces);
     int align(cv::Mat image, std::vector<Face> &faces);

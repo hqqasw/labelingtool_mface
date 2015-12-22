@@ -27,10 +27,13 @@ public:
     QString get_path();
     void set_path(QString _path);
 
-    void add_face();
-    void delete_face(int FaceID);
+    void set_FaceID(int _FaceID);
 
-    void labeling(int FaceID, int PointID, QPointF loc);
+    void add_face();
+    void delete_face();
+
+    void labelingone(int FaceID, int PointID, QPointF loc);
+    void labelingall(int FaceID, QPointF loc);
 
     std::vector<std::vector<Face> > res;
 
@@ -43,6 +46,8 @@ private:
     int N; //total frames
     int n; //frame number now
 
+    int FaceID;
+
     QString name;
     QString path;
 
@@ -50,6 +55,7 @@ private:
 
     std::vector<cv::Mat> image_cache;
     int cache_count;
+    int cache_start;
 
     FaceTools facetools;
 

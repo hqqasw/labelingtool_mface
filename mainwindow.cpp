@@ -122,11 +122,11 @@ void MainWindow::handleSequenceEvent(QEvent *e)
         gs = new GlobalScreen(seq, this);
         fs = new FaceScreen(seq, this);
 
-        qreal scale = qScale(seq->get_size(), QSize(360, 360));
+        qreal scale = qScale(seq->get_size(), QSize(420, 420));
         if (scale > 1)
             scale = 1;
         gs->setFixedSize(seq->get_size() * scale);
-        fs->setFixedSize(360, 360);
+        fs->setFixedSize(420, 420);
         g->addWidget(fs, 0, 0, 1, 1, Qt::AlignCenter);
         g->addWidget(gs, 0, 1, 1, 1, Qt::AlignCenter);
 
@@ -142,6 +142,8 @@ void MainWindow::handleSequenceEvent(QEvent *e)
         QSettings settings(Author, Title);
 
         setWindowTitle(path + " - " + Title);
+
+         ui->statusBar->showMessage("Success!");
     }
     else if (e->type() == SaveSequence)
     {
@@ -224,12 +226,12 @@ void MainWindow::on_playButton_clicked()
 
 void MainWindow::on_addButton_clicked()
 {
-
+    seq->add_face();
 }
 
 void MainWindow::on_deleteButton_clicked()
 {
-
+    seq->delete_face();
 }
 
 void MainWindow::on_slider_valueChanged(int value)
