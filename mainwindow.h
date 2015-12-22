@@ -1,25 +1,21 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <opencv2/opencv.hpp>
+
+#include "common.h"
 #include "sequence.h"
-
-#include <QMainWindow>
-#include <QKeyEvent>
-#include <QSlider>
-#include <QPainter>
-#include <QLayout>
-
-#include <myqlabel.h>
-
-using namespace cv;
-
-#define IMAGELABEL_SIZE 480
-#define TOLLING_FACTOR 1.1
+#include "globalscreen.h"
+#include "facescreen.h"
 
 namespace Ui {
 class MainWindow;
 }
+
+const QEvent::Type
+    OpenSequence = QEvent::Type(QEvent::User + 1),
+    SaveSequence = QEvent::Type(QEvent::User + 2),
+    PlayVideo = QEvent::Type(QEvent::User + 3),
+    StopVideo = QEvent::Type(QEvent::User + 4);
 
 class MainWindow : public QMainWindow
 {
@@ -30,37 +26,41 @@ public:
     ~MainWindow();
 
 private:
-    Ui::MainWindow *ui;
+    enum State { Empty, Normal, Play };
 
-//    Mat frame_show;
-
-//    Sequence *seq;
-    int pos_now;
-    int N;
-//    double show_scale;
-//    int show_height;
-//    int show_width;
-//    cv::Point image_location;
-
-//    cv::Rect show_roi;
-
-    MyQLabel *image_label;
-
-    QSlider *slider;
-    QLabel *slider_label;
-
+    void handleKeyEvent(QKeyEvent *e);
+    void handlePaintEvent(QPaintEvent *e);
+    void handleSequenceEvent(QEvent *e);
+    void handleVideoEvent(QEvent *e);
 
 protected:
-//    void paintEvent(QPaintEvent *e);
-    void keyPressEvent(QKeyEvent *e);
+    bool eventFilter(QObject *obj, QEvent *e);
 
 private slots:
-    void image_label_click(int x, int y);
-    void image_label_move(int x, int y);
-    void image_label_release(int x, int y);
-    void image_label_roll(double delta, int x, int y);
+    void on_action_Open_triggered();
+    void on_action_Save_triggered();
+    void on_actionExit_triggered();
+    void on_playButton_clicked();
+    void on_addButton_clicked();
+    void on_deleteButton_clicked();
+    void on_slider_valueChanged(int value);
 
-    void slider_change();
+    void frame_come();
+    void refresh();
+
+private:
+    Ui::MainWindow *ui;
+    GlobalScreen *gs;
+    FaceScreen *fs;
+    Sequence *seq;
+    QString image_folder;
+
+    QAction* separator[2];
+    QVector<QAction*> recent;
+    QString recent_path;
+
+    State state;
+    QTimer *timer_frame;
 };
 
 #endif // MAINWINDOW_H

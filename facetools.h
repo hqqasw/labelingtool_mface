@@ -6,12 +6,11 @@
 #include <opencv2/opencv.hpp>
 #include <cv_face.h>
 #include <QDebug>
-
-#define ALI_POINTS_NUM 21
+#include "common.h"
 
 struct Face{
-    cv::Rect rect;
-    std::vector<cv::Point> alignments;
+    cv::Rect2f rect;
+    std::vector<cv::Point2f> alignments;
     int ID;
 
     Face()
