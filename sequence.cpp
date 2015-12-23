@@ -237,11 +237,10 @@ void Sequence::labelingall(int FaceID, QPointF loc)
 
     res[n][FaceID].rect.x += delta_x;
     res[n][FaceID].rect.y += delta_y;
-    for(int i = 0; i < ALI_POINTS_NUM; i++)
-    {
-        res[n][FaceID].alignments[i].x += delta_x;
-        res[n][FaceID].alignments[i].y += delta_y;
-    }
+
+
+    facetools.align(get_frame_raw(n), res[n][FaceID]);
+
     update();
 }
 
@@ -259,10 +258,19 @@ void Sequence::add_face()
     face.rect.width = min(height, width) / 5;
     face.rect.height = face.rect.width;
 
-    face.alignments = get_meanpose(face.rect);
+    facetools.align(get_frame_raw(n), face);
 
     res[n].push_back(face);
 
+    Face face_last = face;
+    for(int i = n+1; i < N; i++)
+    {
+        Face face_i;
+        if(!facetools.track(get_frame_raw(i), face_last, face_i))
+            break;
+        facetools.align(get_frame_raw(i),face_i);
+        res[i].push_back(face_i);
+    }
 }
 
 void Sequence::delete_face()
