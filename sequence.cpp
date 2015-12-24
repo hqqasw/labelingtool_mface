@@ -32,17 +32,10 @@ Sequence::Sequence(QString qfilename, QString res_file)
         capture >> image_cache[i];
     }
 
+    ID_now = 0;
     if(res_file == NULL)
     {
-        capture.set(CV_CAP_PROP_POS_FRAMES, 0);
-        for(int i = 0; i < N; i++)
-        {
-            Mat img;
-            capture >> img;
-            std::vector<Face> res_tmp;
-            facetools.detectAndalign(img, res_tmp);
-            res.push_back(res_tmp);
-        }
+        qDebug("No result file!");
     }
     else
     {
@@ -60,12 +53,15 @@ Sequence::Sequence(QString qfilename, QString res_file)
             std::vector<Face> res_tmp(face_num);
             for(int j = 0; j < face_num; j++)
             {
+                fscanf(fp, "%d", &res_tmp[j].ID);
                 fscanf(fp,"%f %f %f %f", &res_tmp[j].rect.x, &res_tmp[j].rect.y, &res_tmp[j].rect.width, &res_tmp[j].rect.height);
-                res_tmp[j].alignments = std::vector<Point2f>(ALI_POINTS_NUM);
+                //res_tmp[j].alignments = std::vector<Point2f>(ALI_POINTS_NUM);
                 for(int k = 0; k < ALI_POINTS_NUM; k++)
                 {
                     fscanf(fp, "%f %f", &res_tmp[j].alignments[k].x, &res_tmp[j].alignments[k].y);
                 }
+                if(res_tmp[j].ID > ID_now)
+                    ID_now = res_tmp[j].ID;
             }
             res.push_back(res_tmp);
         }
@@ -96,13 +92,25 @@ QImage Sequence::get_frame(int i)
 
     for(int k = 0; k < res[i].size(); k++)
     {
+        char id_str[10];
+        sprintf(id_str,"%d",res[i][k].ID);
+
         if(k == FaceID)
+        {
             rectangle(image, res[i][k].rect, CV_RGB(255,0,0), 2);
+            putText(image, id_str, Point2f(res[i][k].rect.x, res[i][k].rect.y-5),
+                CV_FONT_HERSHEY_COMPLEX, 0.5, CV_RGB(255,0,0) );
+        }
         else
+        {
             rectangle(image, res[i][k].rect, CV_RGB(0,0,255), 2);
+            putText(image, id_str, Point2f(res[i][k].rect.x, res[i][k].rect.y-5),
+                CV_FONT_HERSHEY_COMPLEX, 0.5, CV_RGB(0,0,255) );
+        }
         for(int j = 0; j < ALI_POINTS_NUM; j++)
         {
-            circle(image, res[i][k].alignments[j], 1, CV_RGB(0,255,0), 2);
+            if(res[i][k].alignments[j].x > 0 && res[i][k].alignments[j].y > 0)
+                circle(image, res[i][k].alignments[j], 1, CV_RGB(0,255,0), 2);
         }
     }
 
@@ -226,55 +234,126 @@ cv::Mat Sequence::get_frame_raw(int i)
 void Sequence::labelingone(int FaceID, int PointID, QPointF loc)
 {
     res[n][FaceID].alignments[PointID] = Point(int(loc.x()), int(loc.y()));
-    update();
-}
-
-void Sequence::labelingall(int FaceID, QPointF loc)
-{
-    float delta_x, delta_y;
-    delta_x = loc.x() - (res[n][FaceID].rect.x + res[n][FaceID].rect.width);
-    delta_y = loc.y() - (res[n][FaceID].rect.y + res[n][FaceID].rect.height);
-
-    res[n][FaceID].rect.x += delta_x;
-    res[n][FaceID].rect.y += delta_y;
-
-
-    facetools.align(get_frame_raw(n), res[n][FaceID]);
-
-    update();
-}
-
-void Sequence::update()
-{
-    return;
-}
-
-
-void Sequence::add_face()
-{
-    Face face;
-    face.rect.x = width*2/5;
-    face.rect.y = height*2/5;
-    face.rect.width = min(height, width) / 5;
-    face.rect.height = face.rect.width;
-
-    facetools.align(get_frame_raw(n), face);
-
-    res[n].push_back(face);
-
-    Face face_last = face;
-    for(int i = n+1; i < N; i++)
-    {
-        Face face_i;
-        if(!facetools.track(get_frame_raw(i), face_last, face_i))
-            break;
-        facetools.align(get_frame_raw(i),face_i);
-        res[i].push_back(face_i);
-    }
+    res[n][FaceID].rect = facetools.points2rect(res[n][FaceID].alignments);
 }
 
 void Sequence::delete_face()
 {
     if(FaceID >= 0 && FaceID < res[n].size())
+    {
+        int delete_ID = res[n][FaceID].ID;
         res[n].erase(res[n].begin() + FaceID, res[n].begin() + FaceID + 1);
+        for(int i = n+1; i < N; i++)
+        {
+            for(int j = 0; j < res[i].size(); j++)
+            {
+                if(res[i][j].ID == delete_ID)
+                    res[i].erase(res[i].begin() + j, res[i].begin() + j + 1);
+            }
+        }
+    }
 }
+
+
+void Sequence::add_face_press(QPointF loc)
+{
+    Face face;
+    face.rect.x = loc.x();
+    face.rect.y = loc.y();
+    face.rect.width = 1;
+    face.rect.height = 1;
+    face.ID = ID_now;
+    ID_now ++;
+
+    //facetools.align(get_frame_raw(n), face);
+
+    res[n].push_back(face);
+}
+
+void Sequence::add_face_move(QPointF loc)
+{
+    int face_num = res[n].size();
+    Face face = res[n][face_num-1];
+    float rect_size = std::max( std::min(loc.x() - face.rect.x, loc.y() - face.rect.y), 1.0);
+    res[n][face_num-1].rect.width = rect_size;
+    res[n][face_num-1].rect.height = rect_size;
+
+    //facetools.align(get_frame_raw(n), res[n][face_num-1]);
+}
+
+void Sequence::add_face_release()
+{
+    int face_num = res[n].size();
+    facetools.align(get_frame_raw(n), res[n][face_num-1]);
+
+    //look backward
+    if(n > 0)
+    {
+        for(int j = 0; j < res[n-1].size(); j++)
+        {
+            if(overlap(res[n-1][j].rect, res[n][face_num-1].rect) > 0.3)
+            {
+                res[n][face_num-1].ID = res[n-1][j].ID;
+                break;
+            }
+        }
+    }
+
+    //look forward
+    for(int i = n+1; i < min(n+101,N); i++)
+    {
+        face_num = res[i-1].size();
+        int temp_success;
+        Face face;
+        temp_success = facetools.track(get_frame_raw(i), res[i-1][face_num - 1], face);
+
+        if(temp_success == 1)
+        {
+            for(int j = 0; j < res[i].size(); j++)
+            {
+                if(overlap(res[i][j].rect, face.rect) > 0.3)
+                {
+                    temp_success = 0;
+                    resetID(i, N, res[i][j].ID, face.ID);
+                    break;
+                }
+            }
+        }
+
+        if(temp_success == 1)
+            res[i].push_back(face);
+        else
+            break;
+    }
+    return;
+}
+
+float Sequence::overlap(Rect_<float> a, Rect_<float> b)
+{
+    float left = max(a.x, b.x);
+    float right = min(a.x + a.width, b.x + b.width);
+    float top = max(a.y, b.y);
+    float bottom = max(a.y + a.height, b.y + b.height);
+
+    if(left > right || top > bottom)
+        return 0;
+
+    float area = (right - left)*(bottom - top);
+    return area / (a.area() + b.area() - area);
+}
+
+void Sequence::resetID(int start_frame, int end_frame, int old_ID, int new_ID)
+{
+    for(int i = start_frame; i < end_frame; i++)
+    {
+        for(int j = 0; j < res[i].size(); j++)
+        {
+            if(res[i][j].ID == old_ID)
+            {
+                res[i][j].ID = new_ID;
+                break;
+            }
+        }
+    }
+}
+

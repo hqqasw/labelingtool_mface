@@ -15,6 +15,7 @@ struct Face{
 
     Face()
     {
+        alignments = std::vector<cv::Point2f>(ALI_POINTS_NUM, Point2f(-1,-1));
         rect.width = 0;
         ID = -1;
     }
@@ -28,11 +29,12 @@ public:
 
     int detect(cv::Mat image, std::vector<Face> &faces);
     int align(cv::Mat image, std::vector<Face> &faces);
-    int align(cv::Mat image, Face &face);
-    int detectAndalign(cv::Mat image, std::vector<Face> &faces);
+    int align(cv::Mat image, Face &faces);
 
     int track(cv::Mat image, std::vector<Face> faces_last, std::vector<Face> &faces);
     int track(cv::Mat image, Face face_last, Face &face);
+
+    Rect_<float> points2rect(std::vector<Point2f> alignments);
 
 private:
     cv_handle_t handle_detect;

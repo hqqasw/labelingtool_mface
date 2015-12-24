@@ -15,6 +15,7 @@ public:
     QString hint();
     void play();
     void stop();
+    void add();
 
 signals:
     void changed();
@@ -35,6 +36,7 @@ private:
     Sequence *s;
     QPointF start_pos;
     bool playing;
+    bool adding;
     QString hints;
 
     int PointID;

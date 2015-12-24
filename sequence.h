@@ -29,11 +29,12 @@ public:
 
     void set_FaceID(int _FaceID);
 
-    void add_face();
     void delete_face();
+    void add_face_press(QPointF loc);
+    void add_face_move(QPointF loc);
+    void add_face_release();
 
     void labelingone(int FaceID, int PointID, QPointF loc);
-    void labelingall(int FaceID, QPointF loc);
 
     std::vector<std::vector<Face> > res;
 
@@ -47,6 +48,8 @@ private:
     int n; //frame number now
 
     int FaceID;
+
+    int ID_now;
 
     QString name;
     QString path;
@@ -63,6 +66,9 @@ private:
     cv::Mat get_frame_raw(int i);
     void update(); //update res according to manual change
 
+    float overlap(Rect_<float> a, Rect_<float> b);
+
+    void resetID(int start_frame, int end_frame, int old_ID, int new_ID);
 };
 
 #endif // SEQUENCE_H

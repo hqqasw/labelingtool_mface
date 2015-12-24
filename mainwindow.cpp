@@ -138,6 +138,7 @@ void MainWindow::handleSequenceEvent(QEvent *e)
         QString text = QString::number(0) + "/" + QString::number(seq->get_frame_N() - 1);
         ui->progress->setText(text);
         ui->slider->setValue(0);
+        ui->slider->setFocus();
 
         QSettings settings(Author, Title);
 
@@ -147,6 +148,9 @@ void MainWindow::handleSequenceEvent(QEvent *e)
     }
     else if (e->type() == SaveSequence)
     {
+        if(seq->res.size() == 0)
+            return;
+
         QString save_path = seq->get_path();
         save_path.remove(save_path.size()-4, 4);
         save_path.append("_res.txt");
@@ -163,7 +167,8 @@ void MainWindow::handleSequenceEvent(QEvent *e)
              fprintf(fp, "%d\n", seq->res[i].size());
             for(int j = 0; j < seq->res[i].size(); j++)
             {
-                fprintf(fp, "%f\t%f\t%f\t%f\n", seq->res[i][j].rect.x , seq->res[i][j].rect.y, seq->res[i][j].rect.width, seq->res[i][j].rect.height);
+                fprintf(fp, "%d\t", seq->res[i][j].ID);
+                fprintf(fp, "%f\t%f\t%f\t%f\t", seq->res[i][j].rect.x , seq->res[i][j].rect.y, seq->res[i][j].rect.width, seq->res[i][j].rect.height);
                 for(int k = 0; k < ALI_POINTS_NUM; k++)
                 {
                     fprintf(fp, "%f\t%f\t",seq->res[i][j].alignments[k].x, seq->res[i][j].alignments[k].y);
@@ -222,16 +227,22 @@ void MainWindow::on_playButton_clicked()
         QCoreApplication::postEvent(this, new QEvent(PlayVideo));
     else
         QCoreApplication::postEvent(this, new QEvent(StopVideo));
+
+    ui->slider->setFocus();
 }
 
 void MainWindow::on_addButton_clicked()
 {
-    seq->add_face();
+    if (state == Normal)
+        fs->add();
+    ui->slider->setFocus();
 }
 
 void MainWindow::on_deleteButton_clicked()
 {
-    seq->delete_face();
+    if (state == Normal)
+        seq->delete_face();
+    ui->slider->setFocus();
 }
 
 void MainWindow::on_slider_valueChanged(int value)
